@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SwiftCart</title>
+
+  <!-- Tailwind CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            inter: ["ui-sans-serif", "system-ui"]
+          }
+        }
+      }
+    }
+  </script>
+</head>
+
+<body class="bg-slate-50 text-slate-900">
+
+  <!-- Navbar -->
+  <header class="sticky top-0 z-50 bg-white/90 backdrop-blur border-b">
+    <nav class="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
+      <!-- Left: Logo -->
+      <a href="#" class="flex items-center gap-2">
+        <div class="w-9 h-9 rounded-xl bg-slate-900 text-white grid place-items-center font-bold">S</div>
+        <span class="text-xl font-bold">SwiftCart</span>
+      </a>
+
+      <!-- Center: Menu -->
+      <ul class="hidden md:flex items-center gap-8 font-medium">
+        <li><a class="hover:text-slate-600" href="#home">Home</a></li>
+        <li><a class="hover:text-slate-600" href="#products">Products</a></li>
+        <li><a class="hover:text-slate-600" href="#about">About</a></li>
+        <li><a class="hover:text-slate-600" href="#contact">Contact</a></li>
+      </ul>
+
+      <!-- Right: Cart -->
+      <button id="cartBtn" class="relative inline-flex items-center gap-2 px-3 py-2 rounded-xl border hover:bg-slate-50">
+        <!-- simple cart icon -->
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M6 6h15l-1.5 9h-13z"></path>
+          <path d="M6 6l-2-3H1"></path>
+          <circle cx="9" cy="20" r="1"></circle>
+          <circle cx="18" cy="20" r="1"></circle>
+        </svg>
+        <span class="font-medium">Cart</span>
+
+        <!-- count -->
+        <span id="cartCount" class="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-slate-900 text-white text-xs grid place-items-center">
+          0
+        </span>
+      </button>
+
+      <!-- Mobile menu button -->
+      <button id="mobileMenuBtn" class="md:hidden px-3 py-2 rounded-xl border hover:bg-slate-50">
+        ☰
+      </button>
+    </nav>
+
+    <!-- Mobile menu -->
+    <div id="mobileMenu" class="md:hidden hidden border-t bg-white">
+      <ul class="max-w-7xl mx-auto px-4 py-3 flex flex-col gap-3 font-medium">
+        <li><a class="hover:text-slate-600" href="#home">Home</a></li>
+        <li><a class="hover:text-slate-600" href="#products">Products</a></li>
+        <li><a class="hover:text-slate-600" href="#about">About</a></li>
+        <li><a class="hover:text-slate-600" href="#contact">Contact</a></li>
+      </ul>
+    </div>
+  </header>
+
+  <!-- Hero / Banner -->
+  <section id="home" class="relative">
+    <div class="absolute inset-0">
+      <img
+        class="w-full h-full object-cover"
+        src="https://images.unsplash.com/photo-1512436991641-6745cdb1723f?q=80&w=1600&auto=format&fit=crop"
+        alt="Shopping banner"
+      />
+      <div class="absolute inset-0 bg-slate-900/60"></div>
+    </div>
+
+    <div class="relative max-w-7xl mx-auto px-4 py-20 md:py-28 text-white">
+      <div class="max-w-2xl">
+        <h1 class="text-3xl md:text-5xl font-extrabold leading-tight">
+          Best Collection For You
+        </h1>
+        <p class="mt-4 text-white/90 text-base md:text-lg">
+          Explore trending fashion, electronics, and more—picked for your daily needs.
+        </p>
+
+        <div class="mt-8 flex flex-wrap gap-3">
+          <a href="#products" class="inline-flex items-center justify-center px-6 py-3 rounded-xl bg-white text-slate-900 font-semibold hover:bg-slate-100">
+            Shop Now
+          </a>
+          <a href="#about" class="inline-flex items-center justify-center px-6 py-3 rounded-xl border border-white/30 font-semibold hover:bg-white/10">
+            Learn More
+          </a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Features -->
+  <section class="max-w-7xl mx-auto px-4 py-14" id="about">
+    <div class="text-center max-w-2xl mx-auto">
+      <h2 class="text-2xl md:text-3xl font-bold">Why Choose Us</h2>
+      <p class="mt-3 text-slate-600">We focus on fast service, safe payments, and easy shopping.</p>
+    </div>
+
+    <div class="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+      <div class="p-6 bg-white rounded-2xl border shadow-sm">
+        <div class="w-12 h-12 rounded-xl bg-slate-900 text-white grid place-items-center">🚚</div>
+        <h3 class="mt-4 font-semibold text-lg">Fast Delivery</h3>
+        <p class="mt-2 text-slate-600 text-sm">Quick shipping with tracking updates.</p>
+      </div>
+
+      <div class="p-6 bg-white rounded-2xl border shadow-sm">
+        <div class="w-12 h-12 rounded-xl bg-slate-900 text-white grid place-items-center">🛡️</div>
+        <h3 class="mt-4 font-semibold text-lg">Secure Payment</h3>
+        <p class="mt-2 text-slate-600 text-sm">Trusted payment methods and safety checks.</p>
+      </div>
+
+      <div class="p-6 bg-white rounded-2xl border shadow-sm">
+        <div class="w-12 h-12 rounded-xl bg-slate-900 text-white grid place-items-center">💬</div>
+        <h3 class="mt-4 font-semibold text-lg">24/7 Support</h3>
+        <p class="mt-2 text-slate-600 text-sm">We respond fast when you need help.</p>
+      </div>
+
+      <div class="p-6 bg-white rounded-2xl border shadow-sm">
+        <div class="w-12 h-12 rounded-xl bg-slate-900 text-white grid place-items-center">⭐</div>
+        <h3 class="mt-4 font-semibold text-lg">Top Quality</h3>
+        <p class="mt-2 text-slate-600 text-sm">Popular items with strong customer reviews.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Trending / Top Rated -->
+  <section class="bg-white border-y">
+    <div class="max-w-7xl mx-auto px-4 py-14">
+      <div class="flex items-end justify-between gap-4 flex-wrap">
+        <div>
+          <h2 class="text-2xl md:text-3xl font-bold">Trending / Top Rated</h2>
+          <p class="mt-2 text-slate-600">We’ll show top-rated items here from the API.</p>
+        </div>
+      </div>
+
+      <!-- top rated placeholder cards (we will fill dynamically later) -->
+      <div id="topRatedGrid" class="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+        <!-- placeholder -->
+        <div class="p-6 rounded-2xl border bg-slate-50 animate-pulse h-40"></div>
+        <div class="p-6 rounded-2xl border bg-slate-50 animate-pulse h-40"></div>
+        <div class="p-6 rounded-2xl border bg-slate-50 animate-pulse h-40"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Products + Categories -->
+  <section id="products" class="max-w-7xl mx-auto px-4 py-14">
+    <div class="flex items-end justify-between gap-4 flex-wrap">
+      <div>
+        <h2 class="text-2xl md:text-3xl font-bold">Products</h2>
+        <p class="mt-2 text-slate-600">Browse all products and filter by category.</p>
+      </div>
+
+      <!-- Loading state -->
+      <div id="loading" class="hidden items-center gap-2 text-slate-600">
+        <span class="w-4 h-4 rounded-full border-2 border-slate-300 border-t-slate-900 inline-block animate-spin"></span>
+        <span>Loading...</span>
+      </div>
+    </div>
+
+    <!-- Categories -->
+    <div class="mt-6 flex flex-wrap gap-3" id="categoryWrap">
+      <!-- category buttons will load here -->
+      <button class="px-4 py-2 rounded-xl border bg-white">All</button>
+    </div>
+
+    <!-- Product Grid -->
+    <div class="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4" id="productGrid">
+      <!-- skeleton placeholders -->
+      <div class="p-5 bg-white rounded-2xl border shadow-sm">
+        <div class="h-36 bg-slate-100 rounded-xl animate-pulse"></div>
+        <div class="mt-4 h-4 bg-slate-100 rounded animate-pulse"></div>
+        <div class="mt-2 h-4 bg-slate-100 rounded w-2/3 animate-pulse"></div>
+      </div>
+      <div class="p-5 bg-white rounded-2xl border shadow-sm">
+        <div class="h-36 bg-slate-100 rounded-xl animate-pulse"></div>
+        <div class="mt-4 h-4 bg-slate-100 rounded animate-pulse"></div>
+        <div class="mt-2 h-4 bg-slate-100 rounded w-2/3 animate-pulse"></div>
+      </div>
+      <div class="p-5 bg-white rounded-2xl border shadow-sm">
+        <div class="h-36 bg-slate-100 rounded-xl animate-pulse"></div>
+        <div class="mt-4 h-4 bg-slate-100 rounded animate-pulse"></div>
+        <div class="mt-2 h-4 bg-slate-100 rounded w-2/3 animate-pulse"></div>
+      </div>
+      <div class="p-5 bg-white rounded-2xl border shadow-sm hidden xl:block">
+        <div class="h-36 bg-slate-100 rounded-xl animate-pulse"></div>
+        <div class="mt-4 h-4 bg-slate-100 rounded animate-pulse"></div>
+        <div class="mt-2 h-4 bg-slate-100 rounded w-2/3 animate-pulse"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Newsletter -->
+  <section class="bg-slate-900 text-white" id="contact">
+    <div class="max-w-7xl mx-auto px-4 py-14">
+      <div class="grid gap-8 md:grid-cols-2 items-center">
+        <div>
+          <h2 class="text-2xl md:text-3xl font-bold">Join our newsletter</h2>
+          <p class="mt-3 text-white/80">Get offers, updates, and new arrivals.</p>
+        </div>
+
+        <form id="newsletterForm" class="flex flex-col sm:flex-row gap-3">
+          <input
+            id="newsletterEmail"
+            type="email"
+            required
+            placeholder="Enter your email"
+            class="w-full px-4 py-3 rounded-xl text-slate-900 outline-none"
+          />
+          <button class="px-6 py-3 rounded-xl bg-white text-slate-900 font-semibold hover:bg-slate-100">
+            Subscribe
+          </button>
+        </form>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="bg-white border-t">
+    <div class="max-w-7xl mx-auto px-4 py-10 grid gap-8 md:grid-cols-3">
+      <div>
+        <div class="flex items-center gap-2">
+          <div class="w-9 h-9 rounded-xl bg-slate-900 text-white grid place-items-center font-bold">S</div>
+          <span class="text-xl font-bold">SwiftCart</span>
+        </div>
+        <p class="mt-3 text-slate-600 text-sm">
+          Simple e-commerce UI using HTML, Tailwind CDN, and Vanilla JavaScript.
+        </p>
+      </div>
+
+      <div>
+        <h3 class="font-semibold">Quick Links</h3>
+        <ul class="mt-3 space-y-2 text-slate-600 text-sm">
+          <li><a class="hover:text-slate-900" href="#home">Home</a></li>
+          <li><a class="hover:text-slate-900" href="#products">Products</a></li>
+          <li><a class="hover:text-slate-900" href="#about">About</a></li>
+          <li><a class="hover:text-slate-900" href="#contact">Contact</a></li>
+        </ul>
+      </div>
+
+      <div>
+        <h3 class="font-semibold">Social</h3>
+        <div class="mt-3 flex gap-3">
+          <a class="px-3 py-2 rounded-xl border hover:bg-slate-50" href="#" aria-label="Facebook">Fb</a>
+          <a class="px-3 py-2 rounded-xl border hover:bg-slate-50" href="#" aria-label="Twitter">Tw</a>
+          <a class="px-3 py-2 rounded-xl border hover:bg-slate-50" href="#" aria-label="GitHub">Gh</a>
+        </div>
+        <p class="mt-4 text-slate-600 text-sm">
+          © <span id="year"></span> SwiftCart. All rights reserved.
+        </p>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Product Details Modal -->
+  <div id="modal" class="fixed inset-0 hidden items-center justify-center p-4 bg-black/50 z-50">
+    <div class="bg-white w-full max-w-2xl rounded-2xl shadow-lg overflow-hidden">
+      <div class="flex items-center justify-between px-5 py-4 border-b">
+        <h3 class="font-semibold text-lg">Product Details</h3>
+        <button id="modalClose" class="px-3 py-1 rounded-lg border hover:bg-slate-50">✕</button>
+      </div>
+
+      <div id="modalBody" class="p-5">
+        <!-- dynamic -->
+        <div class="animate-pulse space-y-3">
+          <div class="h-6 bg-slate-100 rounded"></div>
+          <div class="h-4 bg-slate-100 rounded w-2/3"></div>
+          <div class="h-40 bg-slate-100 rounded"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="./app.js"></script>
+</body>
+</html>
