@@ -1,4 +1,5 @@
 
+
 const API_BASE = "https://fakestoreapi.com";
 
 
@@ -28,7 +29,11 @@ modal.addEventListener("click", (e) => {
   if (e.target === modal) closeModal();
 });
 
-function openModal(html) {
+function openModal(html, title = "Details") {
+
+  const titleEl = modal.querySelector("h3");
+  if (titleEl) titleEl.textContent = title;
+
   modalBody.innerHTML = html;
   modal.classList.remove("hidden");
   modal.classList.add("flex");
@@ -38,11 +43,12 @@ function closeModal() {
   modal.classList.remove("flex");
 }
 
-
 const productGrid = document.getElementById("productGrid");
 const topRatedGrid = document.getElementById("topRatedGrid");
 const loadingEl = document.getElementById("loading");
 const categoryWrap = document.getElementById("categoryWrap");
+
+const cartBtn = document.getElementById("cartBtn");
 const cartCountEl = document.getElementById("cartCount");
 
 
@@ -50,7 +56,8 @@ let allProducts = [];
 let currentProducts = [];
 let currentCategory = "all";
 
-cartCountEl.textContent = "0";
+
+let cart = loadCart();
 
 
 function setLoading(isLoading) {
@@ -60,6 +67,10 @@ function setLoading(isLoading) {
 
 function truncate(text, max = 45) {
   return text && text.length > max ? text.slice(0, max) + "..." : (text || "");
+}
+
+function money(n) {
+  return Number(n || 0).toFixed(2);
 }
 
 function renderStars(rate) {
@@ -79,7 +90,7 @@ function productCard(p) {
       <div class="mt-4 flex-1">
         <div class="flex items-center justify-between gap-2">
           <span class="px-2 py-1 rounded-lg text-xs border bg-slate-50">${p.category}</span>
-          <span class="font-bold">$${p.price}</span>
+          <span class="font-bold">$${money(p.price)}</span>
         </div>
 
         <h3 class="mt-3 font-semibold leading-snug" title="${p.title}">
@@ -149,7 +160,7 @@ function renderTopRated(products) {
               ${renderStars(p.rating?.rate)}
               <span class="text-xs text-slate-600">${p.rating?.rate ?? 0}</span>
             </div>
-            <span class="font-bold">$${p.price}</span>
+            <span class="font-bold">$${money(p.price)}</span>
           </div>
         </div>
       </div>
@@ -168,10 +179,7 @@ function renderCategoryButtons(categories) {
 
 function categoryButton(value, label) {
   return `
-    <button
-      class="px-4 py-2 rounded-xl border bg-white hover:bg-slate-50 text-sm"
-      data-cat="${value}"
-    >
+    <button class="px-4 py-2 rounded-xl border bg-white hover:bg-slate-50 text-sm" data-cat="${value}">
       ${label}
     </button>
   `;
@@ -216,7 +224,6 @@ async function fetchProductsByCategory(category) {
   return res.json();
 }
 
-
 async function fetchSingleProduct(id) {
   const res = await fetch(`${API_BASE}/products/${id}`);
   if (!res.ok) throw new Error("Failed to fetch product details");
@@ -239,7 +246,6 @@ function modalLoadingUI() {
   `;
 }
 
-
 function productModalUI(p) {
   return `
     <div class="grid gap-6 md:grid-cols-2">
@@ -256,7 +262,7 @@ function productModalUI(p) {
         <h2 class="mt-2 text-xl font-bold leading-snug">${p.title}</h2>
 
         <div class="mt-3 flex items-center justify-between">
-          <span class="font-bold text-lg">$${p.price}</span>
+          <span class="font-bold text-lg">$${money(p.price)}</span>
           <div class="flex items-center gap-2">
             ${renderStars(p.rating?.rate)}
             <span class="text-sm text-slate-600">
@@ -270,18 +276,11 @@ function productModalUI(p) {
         </p>
 
         <div class="mt-6 flex flex-wrap gap-2">
-          <button
-            class="px-5 py-2 rounded-xl bg-slate-900 text-white hover:bg-slate-800"
-            id="modalAddBtn"
-            data-id="${p.id}"
-          >
+          <button class="px-5 py-2 rounded-xl bg-slate-900 text-white hover:bg-slate-800" id="modalAddBtn" data-id="${p.id}">
             Add to Cart
           </button>
 
-          <button
-            class="px-5 py-2 rounded-xl border hover:bg-slate-50"
-            onclick="document.getElementById('modalClose').click()"
-          >
+          <button class="px-5 py-2 rounded-xl border hover:bg-slate-50" onclick="document.getElementById('modalClose').click()">
             Close
           </button>
         </div>
@@ -291,8 +290,241 @@ function productModalUI(p) {
 }
 
 
+function saveCart() {
+  localStorage.setItem("swiftcart_cart", JSON.stringify(cart));
+}
+
+function loadCart() {
+  try {
+    const raw = localStorage.getItem("swiftcart_cart");
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+function getCartCount() {
+  return cart.reduce((sum, item) => sum + item.qty, 0);
+}
+
+function updateCartCountUI() {
+  cartCountEl.textContent = String(getCartCount());
+}
+
+function addToCart(productId) {
+  const found = cart.find((i) => i.id === productId);
+  if (found) found.qty += 1;
+  else cart.push({ id: productId, qty: 1 });
+
+  saveCart();
+  updateCartCountUI();
+}
+
+function removeFromCart(productId) {
+  cart = cart.filter((i) => i.id !== productId);
+  saveCart();
+  updateCartCountUI();
+}
+
+function changeQty(productId, delta) {
+  const found = cart.find((i) => i.id === productId);
+  if (!found) return;
+
+  found.qty += delta;
+  if (found.qty <= 0) {
+    cart = cart.filter((i) => i.id !== productId);
+  }
+
+  saveCart();
+  updateCartCountUI();
+}
+
+function findProductById(id) {
+  return allProducts.find((p) => p.id === id) || currentProducts.find((p) => p.id === id);
+}
+
+function checkoutModalUI() {
+
+  const total = cart.reduce((sum, ci) => {
+    const p = findProductById(ci.id);
+    return sum + (p ? (p.price || 0) * ci.qty : 0);
+  }, 0);
+
+  return `
+    <form id="checkoutForm" class="p-4 space-y-4">
+      <div class="p-3 rounded-xl border bg-slate-50">
+        <div class="flex items-center justify-between">
+          <span class="text-slate-600 font-medium">Payable Total</span>
+          <span class="text-xl font-bold">$${money(total)}</span>
+        </div>
+        <p class="mt-1 text-xs text-slate-500">This is a simple checkout form (no real payment gateway).</p>
+      </div>
+
+      <div class="grid gap-3 sm:grid-cols-2">
+        <div>
+          <label class="text-sm font-medium">Full Name</label>
+          <input required name="name" class="mt-1 w-full px-4 py-3 rounded-xl border outline-none focus:ring-2 focus:ring-slate-200" placeholder="Your name" />
+        </div>
+
+        <div>
+          <label class="text-sm font-medium">Phone</label>
+          <input required name="phone" class="mt-1 w-full px-4 py-3 rounded-xl border outline-none focus:ring-2 focus:ring-slate-200" placeholder="01XXXXXXXXX" />
+        </div>
+      </div>
+
+      <div>
+        <label class="text-sm font-medium">Delivery Address</label>
+        <textarea required name="address" rows="3" class="mt-1 w-full px-4 py-3 rounded-xl border outline-none focus:ring-2 focus:ring-slate-200" placeholder="House, Road, Area, City"></textarea>
+      </div>
+
+      <div class="grid gap-3 sm:grid-cols-2">
+        <div>
+          <label class="text-sm font-medium">Payment Method</label>
+          <select name="payment" class="mt-1 w-full px-4 py-3 rounded-xl border outline-none focus:ring-2 focus:ring-slate-200">
+            <option value="cod">Cash on Delivery</option>
+            <option value="card">Card (mock)</option>
+            <option value="bkash">bKash (mock)</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="text-sm font-medium">Email (optional)</label>
+          <input name="email" type="email" class="mt-1 w-full px-4 py-3 rounded-xl border outline-none focus:ring-2 focus:ring-slate-200" placeholder="you@email.com" />
+        </div>
+      </div>
+
+      <div class="flex flex-wrap gap-2 pt-2">
+        <button type="submit" class="px-5 py-2 rounded-xl bg-slate-900 text-white hover:bg-slate-800">
+          Place Order
+        </button>
+
+        <button type="button" class="px-5 py-2 rounded-xl border hover:bg-slate-50" id="backToCartBtn">
+          Back to Cart
+        </button>
+
+        <button type="button" class="px-5 py-2 rounded-xl border hover:bg-slate-50" onclick="document.getElementById('modalClose').click()">
+          Close
+        </button>
+      </div>
+    </form>
+  `;
+}
+
+function clearCart() {
+  cart = [];
+  saveCart();
+  updateCartCountUI();
+}
+
+
+function cartModalUI() {
+  if (cart.length === 0) {
+    return `
+      <div class="p-4">
+        <p class="text-slate-600">Your cart is empty.</p>
+        <a href="#products" class="inline-block mt-4 px-4 py-2 rounded-xl bg-slate-900 text-white hover:bg-slate-800" onclick="document.getElementById('modalClose').click()">
+          Shop Products
+        </a>
+      </div>
+    `;
+  }
+
+
+  let total = 0;
+
+  const rows = cart
+    .map((ci) => {
+      const p = findProductById(ci.id);
+      if (!p) return "";
+
+      const lineTotal = (p.price || 0) * ci.qty;
+      total += lineTotal;
+
+      return `
+        <div class="flex gap-4 py-4 border-b">
+          <div class="w-20 h-20 bg-slate-50 rounded-xl grid place-items-center overflow-hidden shrink-0">
+            <img src="${p.image}" alt="${p.title}" class="h-16 object-contain" />
+          </div>
+
+          <div class="flex-1">
+            <h4 class="font-semibold leading-snug">${truncate(p.title, 60)}</h4>
+            <p class="text-sm text-slate-600 mt-1">$${money(p.price)} each</p>
+
+            <div class="mt-3 flex flex-wrap items-center gap-2">
+              <button class="px-3 py-1 rounded-lg border hover:bg-slate-50" data-cart="dec" data-id="${p.id}">-</button>
+              <span class="px-3 py-1 rounded-lg border bg-slate-50 text-sm">Qty: ${ci.qty}</span>
+              <button class="px-3 py-1 rounded-lg border hover:bg-slate-50" data-cart="inc" data-id="${p.id}">+</button>
+
+              <span class="ml-auto font-semibold">$${money(lineTotal)}</span>
+            </div>
+
+            <button class="mt-3 text-sm text-red-600 underline" data-cart="remove" data-id="${p.id}">
+              Remove
+            </button>
+          </div>
+        </div>
+      `;
+    })
+    .join("");
+
+  return `
+    <div class="p-4">
+      <div class="max-h-[55vh] overflow-auto pr-2">
+        ${rows}
+      </div>
+
+      <div class="mt-4 flex items-center justify-between">
+        <span class="text-slate-600 font-medium">Total</span>
+        <span class="text-xl font-bold">$${money(total)}</span>
+      </div>
+
+      <div class="mt-4 flex flex-wrap gap-2">
+        <button class="px-5 py-2 rounded-xl bg-slate-900 text-white hover:bg-slate-800" data-cart="checkout">
+          Checkout
+        </button>
+        <button class="px-5 py-2 rounded-xl border hover:bg-slate-50" onclick="document.getElementById('modalClose').click()">
+          Close
+        </button>
+      </div>
+    </div>
+  `;
+}
+
+function openCartModal() {
+  openModal(cartModalUI(), "Your Cart");
+}
+
+
+cartBtn.addEventListener("click", openCartModal);
+
+
+modalBody.addEventListener("click", (e) => {
+  const btn = e.target.closest("[data-cart]");
+  if (!btn) return;
+
+  const action = btn.dataset.cart;
+
+if (action === "checkout") {
+  openModal(checkoutModalUI(), "Checkout");
+  return;
+}
+
+
+  const id = Number(btn.dataset.id);
+  if (!id) return;
+
+  if (action === "remove") removeFromCart(id);
+  if (action === "inc") changeQty(id, +1);
+  if (action === "dec") changeQty(id, -1);
+
+  openCartModal();
+});
+
+
 async function init() {
+  updateCartCountUI();
   setLoading(true);
+
   try {
     const [cats, products] = await Promise.all([fetchCategories(), fetchAllProducts()]);
     allProducts = products;
@@ -315,6 +547,33 @@ async function init() {
     setLoading(false);
   }
 }
+
+
+modalBody.addEventListener("submit", (e) => {
+  if (e.target.id !== "checkoutForm") return;
+
+  e.preventDefault();
+
+  clearCart();
+  openModal(
+    `
+    <div class="p-4 text-center">
+      <h4 class="text-lg font-bold">Order placed</h4>
+      <p class="mt-2 text-slate-600 text-sm">Thanks! We received your order.</p>
+      <a href="#products" class="inline-block mt-4 px-4 py-2 rounded-xl bg-slate-900 text-white hover:bg-slate-800" onclick="document.getElementById('modalClose').click()">
+        Continue Shopping
+      </a>
+    </div>
+    `,
+    "Success"
+  );
+});
+
+modalBody.addEventListener("click", (e) => {
+  const backBtn = e.target.closest("#backToCartBtn");
+  if (!backBtn) return;
+  openCartModal();
+});
 
 
 categoryWrap.addEventListener("click", async (e) => {
@@ -341,7 +600,6 @@ categoryWrap.addEventListener("click", async (e) => {
   }
 });
 
-
 document.addEventListener("click", async (e) => {
   const btn = e.target.closest("button[data-action]");
   if (!btn) return;
@@ -350,30 +608,26 @@ document.addEventListener("click", async (e) => {
   const id = Number(btn.dataset.id);
 
   if (action === "details") {
-   
-    openModal(modalLoadingUI());
+    openModal(modalLoadingUI(), "Product Details");
     try {
       const fresh = await fetchSingleProduct(id);
-      openModal(productModalUI(fresh));
+      openModal(productModalUI(fresh), "Product Details");
     } catch (err) {
       console.error(err);
-      openModal(`
-        <div class="p-4">
+      openModal(
+        `<div class="p-4">
           <p class="text-red-600 font-semibold">Failed to load product details.</p>
           <button class="mt-4 px-4 py-2 rounded-xl border hover:bg-slate-50" onclick="document.getElementById('modalClose').click()">
             Close
           </button>
-        </div>
-      `);
+        </div>`,
+        "Product Details"
+      );
     }
   }
 
   if (action === "add") {
-    
-    const product =
-      currentProducts.find((p) => p.id === id) || allProducts.find((p) => p.id === id);
-    if (!product) return;
-    alert(`Added to cart: ${truncate(product.title, 30)}`);
+    addToCart(id);
   }
 });
 
@@ -381,14 +635,20 @@ document.addEventListener("click", async (e) => {
 modalBody.addEventListener("click", (e) => {
   const addBtn = e.target.closest("#modalAddBtn");
   if (!addBtn) return;
-
   const id = Number(addBtn.dataset.id);
-  const product =
-    currentProducts.find((p) => p.id === id) || allProducts.find((p) => p.id === id);
+  addToCart(id);
+  openModal(`<div class="p-4 text-center">
+  <p class="font-semibold">Added to cart</p>
+  <div class="mt-4 flex justify-center gap-2">
+    <button class="px-4 py-2 rounded-xl bg-slate-900 text-white hover:bg-slate-800" onclick="document.getElementById('modalClose').click(); document.getElementById('cartBtn').click();">
+      View Cart
+    </button>
+    <button class="px-4 py-2 rounded-xl border hover:bg-slate-50" onclick="document.getElementById('modalClose').click()">
+      Continue
+    </button>
+  </div>
+</div>`, "Done");
 
-  if (!product) return;
-  alert(`Added to cart: ${truncate(product.title, 30)}`);
 });
-
 
 init();
