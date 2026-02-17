@@ -1,19 +1,18 @@
-
+// ========================
+// Step 3: Categories + Filter Products
+// ========================
 
 const API_BASE = "https://fakestoreapi.com";
 
-const yearEl = document.getElementById("year");
-yearEl.textContent = new Date().getFullYear();
+// Footer year
+document.getElementById("year").textContent = new Date().getFullYear();
 
-// Mobile menu toggle
+// Mobile menu
 const mobileMenuBtn = document.getElementById("mobileMenuBtn");
 const mobileMenu = document.getElementById("mobileMenu");
+mobileMenuBtn?.addEventListener("click", () => mobileMenu.classList.toggle("hidden"));
 
-mobileMenuBtn?.addEventListener("click", () => {
-  mobileMenu.classList.toggle("hidden");
-});
-
-// Newsletter (simple demo)
+// Newsletter
 const newsletterForm = document.getElementById("newsletterForm");
 newsletterForm.addEventListener("submit", (e) => {
   e.preventDefault();
@@ -22,12 +21,12 @@ newsletterForm.addEventListener("submit", (e) => {
   newsletterForm.reset();
 });
 
-
+// Modal (basic - will improve in Step 4)
 const modal = document.getElementById("modal");
 const modalClose = document.getElementById("modalClose");
 const modalBody = document.getElementById("modalBody");
 
-modalClose.addEventListener("click", () => closeModal());
+modalClose.addEventListener("click", closeModal);
 modal.addEventListener("click", (e) => {
   if (e.target === modal) closeModal();
 });
@@ -37,34 +36,37 @@ function openModal(html) {
   modal.classList.remove("hidden");
   modal.classList.add("flex");
 }
-
 function closeModal() {
   modal.classList.add("hidden");
   modal.classList.remove("flex");
 }
 
-
+// Targets
 const productGrid = document.getElementById("productGrid");
 const topRatedGrid = document.getElementById("topRatedGrid");
 const loadingEl = document.getElementById("loading");
+const categoryWrap = document.getElementById("categoryWrap");
+const cartCountEl = document.getElementById("cartCount");
 
-
+// State
 let allProducts = [];
+let currentProducts = [];
+let currentCategory = "all";
 
+// (Cart comes Step 5. For now we keep count 0)
+cartCountEl.textContent = "0";
 
+// Helpers
 function setLoading(isLoading) {
   if (!loadingEl) return;
-  if (isLoading) loadingEl.classList.remove("hidden");
-  else loadingEl.classList.add("hidden");
+  loadingEl.classList.toggle("hidden", !isLoading);
 }
 
 function truncate(text, max = 45) {
-  if (!text) return "";
-  return text.length > max ? text.slice(0, max) + "..." : text;
+  return text && text.length > max ? text.slice(0, max) + "..." : (text || "");
 }
 
 function renderStars(rate) {
-  
   const r = Math.round(rate || 0);
   let stars = "";
   for (let i = 1; i <= 5; i++) stars += i <= r ? "★" : "☆";
@@ -118,10 +120,8 @@ function productCard(p) {
   `;
 }
 
-function renderProducts(products) {
-  if (!productGrid) return;
-
-  if (!products || products.length === 0) {
+function renderProducts(list) {
+  if (!list || list.length === 0) {
     productGrid.innerHTML = `
       <div class="col-span-full p-8 bg-white rounded-2xl border text-center">
         <p class="text-slate-600">No products found.</p>
@@ -129,12 +129,10 @@ function renderProducts(products) {
     `;
     return;
   }
-
-  productGrid.innerHTML = products.map(productCard).join("");
+  productGrid.innerHTML = list.map(productCard).join("");
 }
 
 function renderTopRated(products) {
-  
   const sorted = [...products].sort((a, b) => (b.rating?.rate || 0) - (a.rating?.rate || 0));
   const top3 = sorted.slice(0, 3);
 
@@ -157,9 +155,6 @@ function renderTopRated(products) {
             </div>
             <span class="font-bold">$${p.price}</span>
           </div>
-          <div class="mt-3">
-            <a href="#products" class="text-sm font-semibold text-slate-900 underline">View in Products</a>
-          </div>
         </div>
       </div>
     `
@@ -167,42 +162,136 @@ function renderTopRated(products) {
     .join("");
 }
 
+// Categories UI
+function renderCategoryButtons(categories) {
+  // Always include "All"
+  const allBtn = categoryButton("all", "All");
+  const otherBtns = categories.map((c) => categoryButton(c, titleCase(c))).join("");
+
+  categoryWrap.innerHTML = allBtn + otherBtns;
+  setActiveCategoryBtn(currentCategory);
+}
+
+function categoryButton(value, label) {
+  return `
+    <button
+      class="px-4 py-2 rounded-xl border bg-white hover:bg-slate-50 text-sm"
+      data-cat="${value}"
+    >
+      ${label}
+    </button>
+  `;
+}
+
+function setActiveCategoryBtn(cat) {
+  const btns = categoryWrap.querySelectorAll("button[data-cat]");
+  btns.forEach((b) => {
+    const isActive = b.dataset.cat === cat;
+    b.classList.toggle("bg-slate-900", isActive);
+    b.classList.toggle("text-white", isActive);
+    b.classList.toggle("border-slate-900", isActive);
+
+    b.classList.toggle("bg-white", !isActive);
+    b.classList.toggle("text-slate-900", !isActive);
+  });
+}
+
+function titleCase(str) {
+  // example: "men's clothing" => "Men's Clothing"
+  return (str || "")
+    .split(" ")
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(" ");
+}
+
+// API calls
+async function fetchCategories() {
+  const res = await fetch(`${API_BASE}/products/categories`);
+  if (!res.ok) throw new Error("Failed to fetch categories");
+  return res.json();
+}
+
 async function fetchAllProducts() {
+  const res = await fetch(`${API_BASE}/products`);
+  if (!res.ok) throw new Error("Failed to fetch products");
+  return res.json();
+}
+
+async function fetchProductsByCategory(category) {
+  const res = await fetch(`${API_BASE}/products/category/${encodeURIComponent(category)}`);
+  if (!res.ok) throw new Error("Failed to fetch category products");
+  return res.json();
+}
+
+// Load initial
+async function init() {
   setLoading(true);
   try {
-    const res = await fetch(`${API_BASE}/products`);
-    if (!res.ok) throw new Error("Failed to fetch products");
-    const data = await res.json();
-    allProducts = data;
-    renderProducts(allProducts);
+    // Load categories + all products in parallel
+    const [cats, products] = await Promise.all([fetchCategories(), fetchAllProducts()]);
+    allProducts = products;
+    currentProducts = products;
+
+    renderCategoryButtons(cats);
+    renderProducts(currentProducts);
     renderTopRated(allProducts);
   } catch (err) {
     console.error(err);
     productGrid.innerHTML = `
       <div class="col-span-full p-8 bg-white rounded-2xl border text-center">
-        <p class="text-red-600 font-semibold">Failed to load products.</p>
-        <p class="text-slate-600 mt-2">Check your internet connection and try again.</p>
+        <p class="text-red-600 font-semibold">Failed to load data.</p>
+        <p class="text-slate-600 mt-2">Check internet and refresh.</p>
       </div>
     `;
     topRatedGrid.innerHTML = "";
+    categoryWrap.innerHTML = "";
   } finally {
     setLoading(false);
   }
 }
 
-// Event delegation for product buttons
+// Category click handler
+categoryWrap.addEventListener("click", async (e) => {
+  const btn = e.target.closest("button[data-cat]");
+  if (!btn) return;
+
+  const cat = btn.dataset.cat;
+  if (cat === currentCategory) return;
+
+  currentCategory = cat;
+  setActiveCategoryBtn(currentCategory);
+
+  setLoading(true);
+  try {
+    if (cat === "all") {
+      currentProducts = allProducts;
+    } else {
+      currentProducts = await fetchProductsByCategory(cat);
+    }
+    renderProducts(currentProducts);
+  } catch (err) {
+    console.error(err);
+    renderProducts([]);
+  } finally {
+    setLoading(false);
+  }
+});
+
+// Buttons: details/add (still demo cart)
 document.addEventListener("click", (e) => {
   const btn = e.target.closest("button[data-action]");
   if (!btn) return;
 
   const action = btn.dataset.action;
   const id = Number(btn.dataset.id);
-  const product = allProducts.find((p) => p.id === id);
+
+  // Find from current list first, fallback to allProducts
+  const product =
+    currentProducts.find((p) => p.id === id) || allProducts.find((p) => p.id === id);
 
   if (!product) return;
 
   if (action === "details") {
-    
     openModal(`
       <div class="grid gap-6 md:grid-cols-2">
         <div class="bg-slate-50 rounded-2xl p-4 grid place-items-center">
@@ -234,22 +323,22 @@ document.addEventListener("click", (e) => {
   }
 
   if (action === "add") {
-    
     alert(`Added to cart: ${truncate(product.title, 30)}`);
   }
 });
 
-// Modal add button click (delegation inside modal)
 modalBody.addEventListener("click", (e) => {
   const addBtn = e.target.closest("#modalAddBtn");
   if (!addBtn) return;
 
   const id = Number(addBtn.dataset.id);
-  const product = allProducts.find((p) => p.id === id);
+  const product =
+    currentProducts.find((p) => p.id === id) || allProducts.find((p) => p.id === id);
+
   if (!product) return;
 
   alert(`Added to cart: ${truncate(product.title, 30)}`);
 });
 
-// Init
-fetchAllProducts();
+// Run
+init();
