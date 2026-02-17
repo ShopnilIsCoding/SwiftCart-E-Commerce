@@ -1,18 +1,15 @@
-// ========================
-// Step 3: Categories + Filter Products
-// ========================
 
 const API_BASE = "https://fakestoreapi.com";
 
-// Footer year
+
 document.getElementById("year").textContent = new Date().getFullYear();
 
-// Mobile menu
+
 const mobileMenuBtn = document.getElementById("mobileMenuBtn");
 const mobileMenu = document.getElementById("mobileMenu");
 mobileMenuBtn?.addEventListener("click", () => mobileMenu.classList.toggle("hidden"));
 
-// Newsletter
+
 const newsletterForm = document.getElementById("newsletterForm");
 newsletterForm.addEventListener("submit", (e) => {
   e.preventDefault();
@@ -21,7 +18,7 @@ newsletterForm.addEventListener("submit", (e) => {
   newsletterForm.reset();
 });
 
-// Modal (basic - will improve in Step 4)
+
 const modal = document.getElementById("modal");
 const modalClose = document.getElementById("modalClose");
 const modalBody = document.getElementById("modalBody");
@@ -41,22 +38,21 @@ function closeModal() {
   modal.classList.remove("flex");
 }
 
-// Targets
+
 const productGrid = document.getElementById("productGrid");
 const topRatedGrid = document.getElementById("topRatedGrid");
 const loadingEl = document.getElementById("loading");
 const categoryWrap = document.getElementById("categoryWrap");
 const cartCountEl = document.getElementById("cartCount");
 
-// State
+
 let allProducts = [];
 let currentProducts = [];
 let currentCategory = "all";
 
-// (Cart comes Step 5. For now we keep count 0)
 cartCountEl.textContent = "0";
 
-// Helpers
+
 function setLoading(isLoading) {
   if (!loadingEl) return;
   loadingEl.classList.toggle("hidden", !isLoading);
@@ -162,12 +158,10 @@ function renderTopRated(products) {
     .join("");
 }
 
-// Categories UI
+
 function renderCategoryButtons(categories) {
-  // Always include "All"
   const allBtn = categoryButton("all", "All");
   const otherBtns = categories.map((c) => categoryButton(c, titleCase(c))).join("");
-
   categoryWrap.innerHTML = allBtn + otherBtns;
   setActiveCategoryBtn(currentCategory);
 }
@@ -197,14 +191,13 @@ function setActiveCategoryBtn(cat) {
 }
 
 function titleCase(str) {
-  // example: "men's clothing" => "Men's Clothing"
   return (str || "")
     .split(" ")
     .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
     .join(" ");
 }
 
-// API calls
+
 async function fetchCategories() {
   const res = await fetch(`${API_BASE}/products/categories`);
   if (!res.ok) throw new Error("Failed to fetch categories");
@@ -223,11 +216,84 @@ async function fetchProductsByCategory(category) {
   return res.json();
 }
 
-// Load initial
+
+async function fetchSingleProduct(id) {
+  const res = await fetch(`${API_BASE}/products/${id}`);
+  if (!res.ok) throw new Error("Failed to fetch product details");
+  return res.json();
+}
+
+
+function modalLoadingUI() {
+  return `
+    <div class="p-2">
+      <div class="animate-pulse space-y-4">
+        <div class="h-6 bg-slate-100 rounded w-3/4"></div>
+        <div class="h-4 bg-slate-100 rounded w-1/2"></div>
+        <div class="h-64 bg-slate-100 rounded-2xl"></div>
+        <div class="h-4 bg-slate-100 rounded"></div>
+        <div class="h-4 bg-slate-100 rounded w-5/6"></div>
+        <div class="h-10 bg-slate-100 rounded-xl w-40"></div>
+      </div>
+    </div>
+  `;
+}
+
+
+function productModalUI(p) {
+  return `
+    <div class="grid gap-6 md:grid-cols-2">
+      <div class="bg-slate-50 rounded-2xl p-4 grid place-items-center">
+        <img src="${p.image}" alt="${p.title}" class="h-64 object-contain" />
+      </div>
+
+      <div>
+        <div class="flex flex-wrap items-center gap-2">
+          <span class="px-2 py-1 rounded-lg text-xs border bg-slate-50">${p.category}</span>
+          <span class="text-xs text-slate-500">ID: ${p.id}</span>
+        </div>
+
+        <h2 class="mt-2 text-xl font-bold leading-snug">${p.title}</h2>
+
+        <div class="mt-3 flex items-center justify-between">
+          <span class="font-bold text-lg">$${p.price}</span>
+          <div class="flex items-center gap-2">
+            ${renderStars(p.rating?.rate)}
+            <span class="text-sm text-slate-600">
+              ${p.rating?.rate ?? 0} • ${p.rating?.count ?? 0} reviews
+            </span>
+          </div>
+        </div>
+
+        <p class="mt-4 text-slate-600 text-sm leading-relaxed">
+          ${p.description}
+        </p>
+
+        <div class="mt-6 flex flex-wrap gap-2">
+          <button
+            class="px-5 py-2 rounded-xl bg-slate-900 text-white hover:bg-slate-800"
+            id="modalAddBtn"
+            data-id="${p.id}"
+          >
+            Add to Cart
+          </button>
+
+          <button
+            class="px-5 py-2 rounded-xl border hover:bg-slate-50"
+            onclick="document.getElementById('modalClose').click()"
+          >
+            Close
+          </button>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+
 async function init() {
   setLoading(true);
   try {
-    // Load categories + all products in parallel
     const [cats, products] = await Promise.all([fetchCategories(), fetchAllProducts()]);
     allProducts = products;
     currentProducts = products;
@@ -250,7 +316,7 @@ async function init() {
   }
 }
 
-// Category click handler
+
 categoryWrap.addEventListener("click", async (e) => {
   const btn = e.target.closest("button[data-cat]");
   if (!btn) return;
@@ -263,11 +329,9 @@ categoryWrap.addEventListener("click", async (e) => {
 
   setLoading(true);
   try {
-    if (cat === "all") {
-      currentProducts = allProducts;
-    } else {
-      currentProducts = await fetchProductsByCategory(cat);
-    }
+    if (cat === "all") currentProducts = allProducts;
+    else currentProducts = await fetchProductsByCategory(cat);
+
     renderProducts(currentProducts);
   } catch (err) {
     console.error(err);
@@ -277,55 +341,42 @@ categoryWrap.addEventListener("click", async (e) => {
   }
 });
 
-// Buttons: details/add (still demo cart)
-document.addEventListener("click", (e) => {
+
+document.addEventListener("click", async (e) => {
   const btn = e.target.closest("button[data-action]");
   if (!btn) return;
 
   const action = btn.dataset.action;
   const id = Number(btn.dataset.id);
 
-  // Find from current list first, fallback to allProducts
-  const product =
-    currentProducts.find((p) => p.id === id) || allProducts.find((p) => p.id === id);
-
-  if (!product) return;
-
   if (action === "details") {
-    openModal(`
-      <div class="grid gap-6 md:grid-cols-2">
-        <div class="bg-slate-50 rounded-2xl p-4 grid place-items-center">
-          <img src="${product.image}" alt="${product.title}" class="h-56 object-contain" />
+   
+    openModal(modalLoadingUI());
+    try {
+      const fresh = await fetchSingleProduct(id);
+      openModal(productModalUI(fresh));
+    } catch (err) {
+      console.error(err);
+      openModal(`
+        <div class="p-4">
+          <p class="text-red-600 font-semibold">Failed to load product details.</p>
+          <button class="mt-4 px-4 py-2 rounded-xl border hover:bg-slate-50" onclick="document.getElementById('modalClose').click()">
+            Close
+          </button>
         </div>
-        <div>
-          <h2 class="text-xl font-bold">${product.title}</h2>
-          <p class="mt-3 text-slate-600 text-sm">${product.description}</p>
-
-          <div class="mt-4 flex items-center justify-between">
-            <span class="font-bold text-lg">$${product.price}</span>
-            <div class="flex items-center gap-2">
-              ${renderStars(product.rating?.rate)}
-              <span class="text-sm text-slate-600">(${product.rating?.rate ?? 0})</span>
-            </div>
-          </div>
-
-          <div class="mt-5 flex gap-2">
-            <button class="px-4 py-2 rounded-xl bg-slate-900 text-white hover:bg-slate-800" id="modalAddBtn" data-id="${product.id}">
-              Add to Cart
-            </button>
-            <button class="px-4 py-2 rounded-xl border hover:bg-slate-50" onclick="document.getElementById('modalClose').click()">
-              Close
-            </button>
-          </div>
-        </div>
-      </div>
-    `);
+      `);
+    }
   }
 
   if (action === "add") {
+    
+    const product =
+      currentProducts.find((p) => p.id === id) || allProducts.find((p) => p.id === id);
+    if (!product) return;
     alert(`Added to cart: ${truncate(product.title, 30)}`);
   }
 });
+
 
 modalBody.addEventListener("click", (e) => {
   const addBtn = e.target.closest("#modalAddBtn");
@@ -336,9 +387,8 @@ modalBody.addEventListener("click", (e) => {
     currentProducts.find((p) => p.id === id) || allProducts.find((p) => p.id === id);
 
   if (!product) return;
-
   alert(`Added to cart: ${truncate(product.title, 30)}`);
 });
 
-// Run
+
 init();
